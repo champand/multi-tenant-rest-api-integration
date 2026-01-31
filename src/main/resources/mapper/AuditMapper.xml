@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.company.integration.mapper.AuditMapper">
+
+    <!-- Result Maps -->
+    <resultMap id="AuditLogResultMap" type="com.company.integration.model.entity.AuditLog">
+        <id property="auditId" column="AUDIT_ID"/>
+        <result property="clientId" column="CLIENT_ID"/>
+        <result property="requestTimestamp" column="REQUEST_TIMESTAMP"/>
+        <result property="requestPayload" column="REQUEST_PAYLOAD"/>
+        <result property="requestHeaders" column="REQUEST_HEADERS"/>
+        <result property="responseTimestamp" column="RESPONSE_TIMESTAMP"/>
+        <result property="responsePayload" column="RESPONSE_PAYLOAD"/>
+        <result property="responseStatusCode" column="RESPONSE_STATUS_CODE"/>
+        <result property="responseHeaders" column="RESPONSE_HEADERS"/>
+        <result property="apiEndpointUrl" column="API_ENDPOINT_URL"/>
+        <result property="executionTimeMs" column="EXECUTION_TIME_MS"/>
+        <result property="successFlag" column="SUCCESS_FLAG"/>
+        <result property="errorMessage" column="ERROR_MESSAGE"/>
+        <result property="createdBy" column="CREATED_BY"/>
+        <result property="createdAt" column="CREATED_AT"/>
+        <result property="sourceRecordId" column="SOURCE_RECORD_ID"/>
+        <result property="httpMethod" column="HTTP_METHOD"/>
+        <result property="correlationId" column="CORRELATION_ID"/>
+    </resultMap>
+
+    <resultMap id="AuditReportResultMap" type="com.company.integration.model.dto.AuditReportDTO">
+        <result property="clientId" column="CLIENT_ID"/>
+        <result property="clientName" column="CLIENT_NAME"/>
+        <result property="requestTimestamp" column="REQUEST_TIMESTAMP"/>
+        <result property="apiEndpoint" column="API_ENDPOINT_URL"/>
+        <result property="httpMethod" column="HTTP_METHOD"/>
+        <result property="statusCode" column="RESPONSE_STATUS_CODE"/>
+        <result property="status" column="STATUS"/>
+        <result property="executionTimeMs" column="EXECUTION_TIME_MS"/>
+        <result property="errorMessage" column="ERROR_MESSAGE"/>
+        <result property="sourceRecordId" column="SOURCE_RECORD_ID"/>
+        <result property="correlationId" column="CORRELATION_ID"/>
+    </resultMap>
+
+    <!-- Insert Statements -->
+    <insert id="insert">
+        INSERT INTO AUDIT_LOG (
+            AUDIT_ID, CLIENT_ID, REQUEST_TIMESTAMP, REQUEST_PAYLOAD, REQUEST_HEADERS,
+            RESPONSE_TIMESTAMP, RESPONSE_PAYLOAD, RESPONSE_STATUS_CODE, RESPONSE_HEADERS,
+            API_ENDPOINT_URL, EXECUTION_TIME_MS, SUCCESS_FLAG, ERROR_MESSAGE,
+            CREATED_BY, CREATED_AT, SOURCE_RECORD_ID, HTTP_METHOD, CORRELATION_ID
+        ) VALUES (
+            #{auditId}, #{clientId}, #{requestTimestamp}, #{requestPayload}, #{requestHeaders},
+            #{responseTimestamp}, #{responsePayload}, #{responseStatusCode}, #{responseHeaders},
+            #{apiEndpointUrl}, #{executionTimeMs}, #{successFlag}, #{errorMessage},
+            #{createdBy}, CURRENT_TIMESTAMP, #{sourceRecordId}, #{httpMethod}, #{correlationId}
+        )
+    </insert>
+
+    <!-- Select Statements -->
+    <select id="findByAuditId" resultMap="AuditLogResultMap">
+        SELECT AUDIT_ID, CLIENT_ID, REQUEST_TIMESTAMP, REQUEST_PAYLOAD, REQUEST_HEADERS,
+               RESPONSE_TIMESTAMP, RESPONSE_PAYLOAD, RESPONSE_STATUS_CODE, RESPONSE_HEADERS,
+               API_ENDPOINT_URL, EXECUTION_TIME_MS, SUCCESS_FLAG, ERROR_MESSAGE,
+               CREATED_BY, CREATED_AT, SOURCE_RECORD_ID, HTTP_METHOD, CORRELATION_ID
+        FROM AUDIT_LOG
+        WHERE AUDIT_ID = #{auditId}
+    </select>
+
+    <select id="findByClientId" resultMap="AuditLogResultMap">
+        SELECT AUDIT_ID, CLIENT_ID, REQUEST_TIMESTAMP, REQUEST_PAYLOAD, REQUEST_HEADERS,
+               RESPONSE_TIMESTAMP, RESPONSE_PAYLOAD, RESPONSE_STATUS_CODE, RESPONSE_HEADERS,
+               API_ENDPOINT_URL, EXECUTION_TIME_MS, SUCCESS_FLAG, ERROR_MESSAGE,
+               CREATED_BY, CREATED_AT, SOURCE_RECORD_ID, HTTP_METHOD, CORRELATION_ID
+        FROM AUDIT_LOG
+        WHERE CLIENT_ID = #{clientId}
+        ORDER BY REQUEST_TIMESTAMP DESC
+        FETCH FIRST #{limit} ROWS ONLY
+    </select>
+
+    <select id="findByCorrelationId" resultMap="AuditLogResultMap">
+        SELECT AUDIT_ID, CLIENT_ID, REQUEST_TIMESTAMP, REQUEST_PAYLOAD, REQUEST_HEADERS,
+               RESPONSE_TIMESTAMP, RESPONSE_PAYLOAD, RESPONSE_STATUS_CODE, RESPONSE_HEADERS,
+               API_ENDPOINT_URL, EXECUTION_TIME_MS, SUCCESS_FLAG, ERROR_MESSAGE,
+               CREATED_BY, CREATED_AT, SOURCE_RECORD_ID, HTTP_METHOD, CORRELATION_ID
+        FROM AUDIT_LOG
+        WHERE CORRELATION_ID = #{correlationId}
+        ORDER BY REQUEST_TIMESTAMP
+    </select>
+
+    <select id="findByClientIdAndTimeRange" resultMap="AuditLogResultMap">
+        SELECT AUDIT_ID, CLIENT_ID, REQUEST_TIMESTAMP, REQUEST_PAYLOAD, REQUEST_HEADERS,
+               RESPONSE_TIMESTAMP, RESPONSE_PAYLOAD, RESPONSE_STATUS_CODE, RESPONSE_HEADERS,
+               API_ENDPOINT_URL, EXECUTION_TIME_MS, SUCCESS_FLAG, ERROR_MESSAGE,
+               CREATED_BY, CREATED_AT, SOURCE_RECORD_ID, HTTP_METHOD, CORRELATION_ID
+        FROM AUDIT_LOG
+        WHERE CLIENT_ID = #{clientId}
+          AND REQUEST_TIMESTAMP >= #{startTime}
+          AND REQUEST_TIMESTAMP &lt; #{endTime}
+        ORDER BY REQUEST_TIMESTAMP
+    </select>
+
+    <select id="findReportData" resultMap="AuditReportResultMap">
+        SELECT a.CLIENT_ID, c.CLIENT_NAME, a.REQUEST_TIMESTAMP, a.API_ENDPOINT_URL,
+               a.HTTP_METHOD, a.RESPONSE_STATUS_CODE,
+               CASE WHEN a.SUCCESS_FLAG = 1 THEN 'SUCCESS' ELSE 'FAILURE' END AS STATUS,
+               a.EXECUTION_TIME_MS, a.ERROR_MESSAGE, a.SOURCE_RECORD_ID, a.CORRELATION_ID
+        FROM AUDIT_LOG a
+        LEFT JOIN CLIENT_CONFIGURATION c ON a.CLIENT_ID = c.CLIENT_ID
+        WHERE a.CLIENT_ID = #{clientId}
+          AND a.REQUEST_TIMESTAMP >= #{startTime}
+          AND a.REQUEST_TIMESTAMP &lt; #{endTime}
+        ORDER BY a.REQUEST_TIMESTAMP
+    </select>
+
+    <select id="findClientsWithRecords" resultType="string">
+        SELECT DISTINCT CLIENT_ID
+        FROM AUDIT_LOG
+        WHERE REQUEST_TIMESTAMP >= #{startTime}
+          AND REQUEST_TIMESTAMP &lt; #{endTime}
+        ORDER BY CLIENT_ID
+    </select>
+
+    <select id="countByClientIdAndTimeRange" resultType="int">
+        SELECT COUNT(*)
+        FROM AUDIT_LOG
+        WHERE CLIENT_ID = #{clientId}
+          AND REQUEST_TIMESTAMP >= #{startTime}
+          AND REQUEST_TIMESTAMP &lt; #{endTime}
+    </select>
+
+    <select id="countSuccessfulCalls" resultType="int">
+        SELECT COUNT(*)
+        FROM AUDIT_LOG
+        WHERE CLIENT_ID = #{clientId}
+          AND REQUEST_TIMESTAMP >= #{startTime}
+          AND REQUEST_TIMESTAMP &lt; #{endTime}
+          AND SUCCESS_FLAG = 1
+    </select>
+
+    <select id="getAverageExecutionTime" resultType="java.lang.Long">
+        SELECT AVG(EXECUTION_TIME_MS)
+        FROM AUDIT_LOG
+        WHERE CLIENT_ID = #{clientId}
+          AND REQUEST_TIMESTAMP >= #{startTime}
+          AND REQUEST_TIMESTAMP &lt; #{endTime}
+          AND EXECUTION_TIME_MS IS NOT NULL
+    </select>
+
+    <!-- Update Statements -->
+    <update id="updateResponse">
+        UPDATE AUDIT_LOG
+        SET RESPONSE_TIMESTAMP = #{responseTimestamp},
+            RESPONSE_PAYLOAD = #{responsePayload},
+            RESPONSE_STATUS_CODE = #{responseStatusCode},
+            RESPONSE_HEADERS = #{responseHeaders},
+            EXECUTION_TIME_MS = #{executionTimeMs},
+            SUCCESS_FLAG = #{successFlag},
+            ERROR_MESSAGE = #{errorMessage}
+        WHERE AUDIT_ID = #{auditId}
+    </update>
+
+</mapper>

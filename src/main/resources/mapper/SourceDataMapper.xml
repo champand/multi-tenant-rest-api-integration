@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.company.integration.mapper.SourceDataMapper">
+
+    <!--
+        Dynamic source data retrieval mapper.
+        SECURITY NOTE: The source table and column names are validated in the service layer
+        against a whitelist before being used in these queries to prevent SQL injection.
+    -->
+
+    <!-- Get single source record -->
+    <select id="getSourceRecord" resultType="java.util.HashMap">
+        SELECT
+        <foreach collection="columns" item="col" separator=",">
+            ${col}
+        </foreach>
+        FROM ${sourceTable}
+        WHERE ${idColumn} = #{recordId}
+    </select>
+
+    <!-- Get multiple source records by IDs -->
+    <select id="getSourceRecords" resultType="java.util.HashMap">
+        SELECT
+        <foreach collection="columns" item="col" separator=",">
+            ${col}
+        </foreach>
+        FROM ${sourceTable}
+        WHERE ${idColumn} IN
+        <foreach collection="recordIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- Check if table exists (Oracle specific) -->
+    <select id="tableExists" resultType="int">
+        SELECT COUNT(*)
+        FROM ALL_TABLES
+        WHERE TABLE_NAME = UPPER(#{tableName})
+          AND OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')
+    </select>
+
+    <!-- Get column names for a table (Oracle specific) -->
+    <select id="getTableColumns" resultType="string">
+        SELECT COLUMN_NAME
+        FROM ALL_TAB_COLUMNS
+        WHERE TABLE_NAME = UPPER(#{tableName})
+          AND OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')
+        ORDER BY COLUMN_ID
+    </select>
+
+    <!-- Check if record exists -->
+    <select id="recordExists" resultType="int">
+        SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END
+        FROM ${sourceTable}
+        WHERE ${idColumn} = #{recordId}
+    </select>
+
+</mapper>

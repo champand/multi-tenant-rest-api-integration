@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.company.integration.mapper.FailedCallMapper">
+
+    <!-- Result Maps -->
+    <resultMap id="FailedApiCallResultMap" type="com.company.integration.model.entity.FailedApiCall">
+        <id property="callId" column="CALL_ID"/>
+        <result property="clientId" column="CLIENT_ID"/>
+        <result property="requestPayload" column="REQUEST_PAYLOAD"/>
+        <result property="requestHeaders" column="REQUEST_HEADERS"/>
+        <result property="apiEndpointUrl" column="API_ENDPOINT_URL"/>
+        <result property="httpMethod" column="HTTP_METHOD"/>
+        <result property="failureTimestamp" column="FAILURE_TIMESTAMP"/>
+        <result property="retryCount" column="RETRY_COUNT"/>
+        <result property="maxRetryAttempts" column="MAX_RETRY_ATTEMPTS"/>
+        <result property="nextRetryTime" column="NEXT_RETRY_TIME"/>
+        <result property="errorMessage" column="ERROR_MESSAGE"/>
+        <result property="lastStatusCode" column="LAST_STATUS_CODE"/>
+        <result property="finalStatus" column="FINAL_STATUS"/>
+        <result property="lastRetryTimestamp" column="LAST_RETRY_TIMESTAMP"/>
+        <result property="sourceRecordId" column="SOURCE_RECORD_ID"/>
+        <result property="correlationId" column="CORRELATION_ID"/>
+        <result property="createdAt" column="CREATED_AT"/>
+        <result property="createdBy" column="CREATED_BY"/>
+        <result property="updatedAt" column="UPDATED_AT"/>
+        <result property="updatedBy" column="UPDATED_BY"/>
+    </resultMap>
+
+    <!-- Insert Statements -->
+    <insert id="insert">
+        INSERT INTO FAILED_API_CALLS (
+            CALL_ID, CLIENT_ID, REQUEST_PAYLOAD, REQUEST_HEADERS, API_ENDPOINT_URL,
+            HTTP_METHOD, FAILURE_TIMESTAMP, RETRY_COUNT, MAX_RETRY_ATTEMPTS,
+            NEXT_RETRY_TIME, ERROR_MESSAGE, LAST_STATUS_CODE, FINAL_STATUS,
+            SOURCE_RECORD_ID, CORRELATION_ID, CREATED_AT, CREATED_BY
+        ) VALUES (
+            #{callId}, #{clientId}, #{requestPayload}, #{requestHeaders}, #{apiEndpointUrl},
+            #{httpMethod}, #{failureTimestamp}, #{retryCount}, #{maxRetryAttempts},
+            #{nextRetryTime}, #{errorMessage}, #{lastStatusCode}, #{finalStatus},
+            #{sourceRecordId}, #{correlationId}, CURRENT_TIMESTAMP, #{createdBy}
+        )
+    </insert>
+
+    <!-- Select Statements -->
+    <select id="findByCallId" resultMap="FailedApiCallResultMap">
+        SELECT CALL_ID, CLIENT_ID, REQUEST_PAYLOAD, REQUEST_HEADERS, API_ENDPOINT_URL,
+               HTTP_METHOD, FAILURE_TIMESTAMP, RETRY_COUNT, MAX_RETRY_ATTEMPTS,
+               NEXT_RETRY_TIME, ERROR_MESSAGE, LAST_STATUS_CODE, FINAL_STATUS,
+               LAST_RETRY_TIMESTAMP, SOURCE_RECORD_ID, CORRELATION_ID,
+               CREATED_AT, CREATED_BY, UPDATED_AT, UPDATED_BY
+        FROM FAILED_API_CALLS
+        WHERE CALL_ID = #{callId}
+    </select>
+
+    <select id="findPendingForRetry" resultMap="FailedApiCallResultMap">
+        SELECT CALL_ID, CLIENT_ID, REQUEST_PAYLOAD, REQUEST_HEADERS, API_ENDPOINT_URL,
+               HTTP_METHOD, FAILURE_TIMESTAMP, RETRY_COUNT, MAX_RETRY_ATTEMPTS,
+               NEXT_RETRY_TIME, ERROR_MESSAGE, LAST_STATUS_CODE, FINAL_STATUS,
+               LAST_RETRY_TIMESTAMP, SOURCE_RECORD_ID, CORRELATION_ID,
+               CREATED_AT, CREATED_BY, UPDATED_AT, UPDATED_BY
+        FROM FAILED_API_CALLS
+        WHERE FINAL_STATUS = 'PENDING'
+          AND NEXT_RETRY_TIME &lt;= #{currentTime}
+        ORDER BY NEXT_RETRY_TIME
+        FETCH FIRST #{limit} ROWS ONLY
+    </select>
+
+    <select id="findPendingByClientId" resultMap="FailedApiCallResultMap">
+        SELECT CALL_ID, CLIENT_ID, REQUEST_PAYLOAD, REQUEST_HEADERS, API_ENDPOINT_URL,
+               HTTP_METHOD, FAILURE_TIMESTAMP, RETRY_COUNT, MAX_RETRY_ATTEMPTS,
+               NEXT_RETRY_TIME, ERROR_MESSAGE, LAST_STATUS_CODE, FINAL_STATUS,
+               LAST_RETRY_TIMESTAMP, SOURCE_RECORD_ID, CORRELATION_ID,
+               CREATED_AT, CREATED_BY, UPDATED_AT, UPDATED_BY
+        FROM FAILED_API_CALLS
+        WHERE CLIENT_ID = #{clientId} AND FINAL_STATUS = 'PENDING'
+        ORDER BY NEXT_RETRY_TIME
+    </select>
+
+    <select id="findByStatus" resultMap="FailedApiCallResultMap">
+        SELECT CALL_ID, CLIENT_ID, REQUEST_PAYLOAD, REQUEST_HEADERS, API_ENDPOINT_URL,
+               HTTP_METHOD, FAILURE_TIMESTAMP, RETRY_COUNT, MAX_RETRY_ATTEMPTS,
+               NEXT_RETRY_TIME, ERROR_MESSAGE, LAST_STATUS_CODE, FINAL_STATUS,
+               LAST_RETRY_TIMESTAMP, SOURCE_RECORD_ID, CORRELATION_ID,
+               CREATED_AT, CREATED_BY, UPDATED_AT, UPDATED_BY
+        FROM FAILED_API_CALLS
+        WHERE FINAL_STATUS = #{status}
+        ORDER BY FAILURE_TIMESTAMP DESC
+        FETCH FIRST #{limit} ROWS ONLY
+    </select>
+
+    <select id="findByCorrelationId" resultMap="FailedApiCallResultMap">
+        SELECT CALL_ID, CLIENT_ID, REQUEST_PAYLOAD, REQUEST_HEADERS, API_ENDPOINT_URL,
+               HTTP_METHOD, FAILURE_TIMESTAMP, RETRY_COUNT, MAX_RETRY_ATTEMPTS,
+               NEXT_RETRY_TIME, ERROR_MESSAGE, LAST_STATUS_CODE, FINAL_STATUS,
+               LAST_RETRY_TIMESTAMP, SOURCE_RECORD_ID, CORRELATION_ID,
+               CREATED_AT, CREATED_BY, UPDATED_AT, UPDATED_BY
+        FROM FAILED_API_CALLS
+        WHERE CORRELATION_ID = #{correlationId}
+        ORDER BY FAILURE_TIMESTAMP
+    </select>
+
+    <select id="countPendingByClientId" resultType="int">
+        SELECT COUNT(*)
+        FROM FAILED_API_CALLS
+        WHERE CLIENT_ID = #{clientId} AND FINAL_STATUS = 'PENDING'
+    </select>
+
+    <select id="countAllPending" resultType="int">
+        SELECT COUNT(*)
+        FROM FAILED_API_CALLS
+        WHERE FINAL_STATUS = 'PENDING'
+    </select>
+
+    <select id="findExhaustedInRange" resultMap="FailedApiCallResultMap">
+        SELECT CALL_ID, CLIENT_ID, REQUEST_PAYLOAD, REQUEST_HEADERS, API_ENDPOINT_URL,
+               HTTP_METHOD, FAILURE_TIMESTAMP, RETRY_COUNT, MAX_RETRY_ATTEMPTS,
+               NEXT_RETRY_TIME, ERROR_MESSAGE, LAST_STATUS_CODE, FINAL_STATUS,
+               LAST_RETRY_TIMESTAMP, SOURCE_RECORD_ID, CORRELATION_ID,
+               CREATED_AT, CREATED_BY, UPDATED_AT, UPDATED_BY
+        FROM FAILED_API_CALLS
+        WHERE FINAL_STATUS = 'EXHAUSTED'
+          AND UPDATED_AT >= #{startTime}
+          AND UPDATED_AT &lt; #{endTime}
+        ORDER BY UPDATED_AT
+    </select>
+
+    <select id="getRetryQueueStats" resultType="java.lang.Object[]">
+        SELECT
+            SUM(CASE WHEN FINAL_STATUS = 'PENDING' THEN 1 ELSE 0 END) AS pending_count,
+            SUM(CASE WHEN FINAL_STATUS = 'EXHAUSTED' THEN 1 ELSE 0 END) AS exhausted_count,
+            SUM(CASE WHEN FINAL_STATUS = 'SUCCESS' THEN 1 ELSE 0 END) AS success_count
+        FROM FAILED_API_CALLS
+    </select>
+
+    <!-- Update Statements -->
+    <update id="updateRetryAttempt">
+        UPDATE FAILED_API_CALLS
+        SET RETRY_COUNT = #{retryCount},
+            NEXT_RETRY_TIME = #{nextRetryTime},
+            LAST_STATUS_CODE = #{lastStatusCode},
+            ERROR_MESSAGE = #{errorMessage},
+            FINAL_STATUS = #{finalStatus},
+            LAST_RETRY_TIMESTAMP = #{lastRetryTimestamp},
+            UPDATED_AT = CURRENT_TIMESTAMP,
+            UPDATED_BY = #{updatedBy}
+        WHERE CALL_ID = #{callId}
+    </update>
+
+    <update id="markAsSuccess">
+        UPDATE FAILED_API_CALLS
+        SET FINAL_STATUS = 'SUCCESS',
+            UPDATED_AT = CURRENT_TIMESTAMP,
+            UPDATED_BY = #{updatedBy}
+        WHERE CALL_ID = #{callId}
+    </update>
+
+    <update id="markAsExhausted">
+        UPDATE FAILED_API_CALLS
+        SET FINAL_STATUS = 'EXHAUSTED',
+            UPDATED_AT = CURRENT_TIMESTAMP,
+            UPDATED_BY = #{updatedBy}
+        WHERE CALL_ID = #{callId}
+    </update>
+
+    <!-- Delete Statements -->
+    <delete id="deleteExhaustedBefore">
+        DELETE FROM FAILED_API_CALLS
+        WHERE FINAL_STATUS = 'EXHAUSTED'
+          AND UPDATED_AT &lt; #{beforeDate}
+    </delete>
+
+    <delete id="deleteSuccessfulBefore">
+        DELETE FROM FAILED_API_CALLS
+        WHERE FINAL_STATUS = 'SUCCESS'
+          AND UPDATED_AT &lt; #{beforeDate}
+    </delete>
+
+</mapper>
