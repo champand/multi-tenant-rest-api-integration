@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.company.integration.mapper.ClientMapper">
+
+    <!-- Result Maps -->
+    <resultMap id="ClientConfigurationResultMap" type="com.company.integration.model.entity.ClientConfiguration">
+        <id property="clientId" column="CLIENT_ID"/>
+        <result property="clientName" column="CLIENT_NAME"/>
+        <result property="apiEndpointUrl" column="API_ENDPOINT_URL"/>
+        <result property="httpMethod" column="HTTP_METHOD"/>
+        <result property="apiKey" column="API_KEY"/>
+        <result property="apiKeyHeaderName" column="API_KEY_HEADER_NAME"/>
+        <result property="timeoutSeconds" column="TIMEOUT_SECONDS"/>
+        <result property="retryEnabled" column="RETRY_ENABLED"/>
+        <result property="isActive" column="IS_ACTIVE"/>
+        <result property="contentType" column="CONTENT_TYPE"/>
+        <result property="additionalHeaders" column="ADDITIONAL_HEADERS"/>
+        <result property="createdAt" column="CREATED_AT"/>
+        <result property="createdBy" column="CREATED_BY"/>
+        <result property="updatedAt" column="UPDATED_AT"/>
+        <result property="updatedBy" column="UPDATED_BY"/>
+    </resultMap>
+
+    <resultMap id="EmailRecipientResultMap" type="com.company.integration.model.entity.ClientEmailRecipient">
+        <id property="recipientId" column="RECIPIENT_ID"/>
+        <result property="clientId" column="CLIENT_ID"/>
+        <result property="emailAddress" column="EMAIL_ADDRESS"/>
+        <result property="recipientName" column="RECIPIENT_NAME"/>
+        <result property="recipientType" column="RECIPIENT_TYPE"/>
+        <result property="isActive" column="IS_ACTIVE"/>
+        <result property="createdAt" column="CREATED_AT"/>
+        <result property="createdBy" column="CREATED_BY"/>
+        <result property="updatedAt" column="UPDATED_AT"/>
+        <result property="updatedBy" column="UPDATED_BY"/>
+    </resultMap>
+
+    <!-- Select Statements -->
+    <select id="findByClientId" resultMap="ClientConfigurationResultMap">
+        SELECT CLIENT_ID, CLIENT_NAME, API_ENDPOINT_URL, HTTP_METHOD, API_KEY,
+               API_KEY_HEADER_NAME, TIMEOUT_SECONDS, RETRY_ENABLED, IS_ACTIVE,
+               CONTENT_TYPE, ADDITIONAL_HEADERS, CREATED_AT, CREATED_BY,
+               UPDATED_AT, UPDATED_BY
+        FROM CLIENT_CONFIGURATION
+        WHERE CLIENT_ID = #{clientId}
+    </select>
+
+    <select id="findAllActive" resultMap="ClientConfigurationResultMap">
+        SELECT CLIENT_ID, CLIENT_NAME, API_ENDPOINT_URL, HTTP_METHOD, API_KEY,
+               API_KEY_HEADER_NAME, TIMEOUT_SECONDS, RETRY_ENABLED, IS_ACTIVE,
+               CONTENT_TYPE, ADDITIONAL_HEADERS, CREATED_AT, CREATED_BY,
+               UPDATED_AT, UPDATED_BY
+        FROM CLIENT_CONFIGURATION
+        WHERE IS_ACTIVE = 1
+        ORDER BY CLIENT_NAME
+    </select>
+
+    <select id="findAll" resultMap="ClientConfigurationResultMap">
+        SELECT CLIENT_ID, CLIENT_NAME, API_ENDPOINT_URL, HTTP_METHOD, API_KEY,
+               API_KEY_HEADER_NAME, TIMEOUT_SECONDS, RETRY_ENABLED, IS_ACTIVE,
+               CONTENT_TYPE, ADDITIONAL_HEADERS, CREATED_AT, CREATED_BY,
+               UPDATED_AT, UPDATED_BY
+        FROM CLIENT_CONFIGURATION
+        ORDER BY CLIENT_NAME
+    </select>
+
+    <select id="existsAndActive" resultType="boolean">
+        SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END
+        FROM CLIENT_CONFIGURATION
+        WHERE CLIENT_ID = #{clientId} AND IS_ACTIVE = 1
+    </select>
+
+    <select id="findEmailRecipients" resultMap="EmailRecipientResultMap">
+        SELECT RECIPIENT_ID, CLIENT_ID, EMAIL_ADDRESS, RECIPIENT_NAME,
+               RECIPIENT_TYPE, IS_ACTIVE, CREATED_AT, CREATED_BY,
+               UPDATED_AT, UPDATED_BY
+        FROM CLIENT_EMAIL_RECIPIENTS
+        WHERE CLIENT_ID = #{clientId} AND IS_ACTIVE = 1
+        ORDER BY RECIPIENT_TYPE, RECIPIENT_NAME
+    </select>
+
+    <select id="findEmailRecipientsByType" resultMap="EmailRecipientResultMap">
+        SELECT RECIPIENT_ID, CLIENT_ID, EMAIL_ADDRESS, RECIPIENT_NAME,
+               RECIPIENT_TYPE, IS_ACTIVE, CREATED_AT, CREATED_BY,
+               UPDATED_AT, UPDATED_BY
+        FROM CLIENT_EMAIL_RECIPIENTS
+        WHERE CLIENT_ID = #{clientId}
+          AND RECIPIENT_TYPE = #{recipientType}
+          AND IS_ACTIVE = 1
+        ORDER BY RECIPIENT_NAME
+    </select>
+
+    <select id="getClientName" resultType="string">
+        SELECT CLIENT_NAME
+        FROM CLIENT_CONFIGURATION
+        WHERE CLIENT_ID = #{clientId}
+    </select>
+
+    <!-- Insert Statements -->
+    <insert id="insert">
+        INSERT INTO CLIENT_CONFIGURATION (
+            CLIENT_ID, CLIENT_NAME, API_ENDPOINT_URL, HTTP_METHOD, API_KEY,
+            API_KEY_HEADER_NAME, TIMEOUT_SECONDS, RETRY_ENABLED, IS_ACTIVE,
+            CONTENT_TYPE, ADDITIONAL_HEADERS, CREATED_AT, CREATED_BY
+        ) VALUES (
+            #{clientId}, #{clientName}, #{apiEndpointUrl}, #{httpMethod}, #{apiKey},
+            #{apiKeyHeaderName}, #{timeoutSeconds}, #{retryEnabled}, #{isActive},
+            #{contentType}, #{additionalHeaders}, CURRENT_TIMESTAMP, #{createdBy}
+        )
+    </insert>
+
+    <insert id="insertEmailRecipient">
+        INSERT INTO CLIENT_EMAIL_RECIPIENTS (
+            CLIENT_ID, EMAIL_ADDRESS, RECIPIENT_NAME, RECIPIENT_TYPE,
+            IS_ACTIVE, CREATED_AT, CREATED_BY
+        ) VALUES (
+            #{clientId}, #{emailAddress}, #{recipientName}, #{recipientType},
+            #{isActive}, CURRENT_TIMESTAMP, #{createdBy}
+        )
+    </insert>
+
+    <!-- Update Statements -->
+    <update id="update">
+        UPDATE CLIENT_CONFIGURATION
+        SET CLIENT_NAME = #{clientName},
+            API_ENDPOINT_URL = #{apiEndpointUrl},
+            HTTP_METHOD = #{httpMethod},
+            API_KEY = #{apiKey},
+            API_KEY_HEADER_NAME = #{apiKeyHeaderName},
+            TIMEOUT_SECONDS = #{timeoutSeconds},
+            RETRY_ENABLED = #{retryEnabled},
+            IS_ACTIVE = #{isActive},
+            CONTENT_TYPE = #{contentType},
+            ADDITIONAL_HEADERS = #{additionalHeaders},
+            UPDATED_AT = CURRENT_TIMESTAMP,
+            UPDATED_BY = #{updatedBy}
+        WHERE CLIENT_ID = #{clientId}
+    </update>
+
+    <update id="deactivate">
+        UPDATE CLIENT_CONFIGURATION
+        SET IS_ACTIVE = 0,
+            UPDATED_AT = CURRENT_TIMESTAMP,
+            UPDATED_BY = #{updatedBy}
+        WHERE CLIENT_ID = #{clientId}
+    </update>
+
+    <!-- Delete Statements -->
+    <delete id="deleteEmailRecipients">
+        DELETE FROM CLIENT_EMAIL_RECIPIENTS
+        WHERE CLIENT_ID = #{clientId}
+    </delete>
+
+</mapper>

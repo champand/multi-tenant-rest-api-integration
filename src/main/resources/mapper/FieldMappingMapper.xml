@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.company.integration.mapper.FieldMappingMapper">
+
+    <!-- Result Maps -->
+    <resultMap id="FieldMappingResultMap" type="com.company.integration.model.entity.FieldMapping">
+        <id property="mappingId" column="MAPPING_ID"/>
+        <result property="clientId" column="CLIENT_ID"/>
+        <result property="sourceTable" column="SOURCE_TABLE"/>
+        <result property="sourceColumn" column="SOURCE_COLUMN"/>
+        <result property="targetFieldPath" column="TARGET_FIELD_PATH"/>
+        <result property="dataType" column="DATA_TYPE"/>
+        <result property="transformationRule" column="TRANSFORMATION_RULE"/>
+        <result property="fieldNotes" column="FIELD_NOTES"/>
+        <result property="isMandatory" column="IS_MANDATORY"/>
+        <result property="defaultValue" column="DEFAULT_VALUE"/>
+        <result property="fieldOrder" column="FIELD_ORDER"/>
+        <result property="isActive" column="IS_ACTIVE"/>
+        <result property="createdAt" column="CREATED_AT"/>
+        <result property="createdBy" column="CREATED_BY"/>
+        <result property="updatedAt" column="UPDATED_AT"/>
+        <result property="updatedBy" column="UPDATED_BY"/>
+    </resultMap>
+
+    <!-- Select Statements -->
+    <select id="findByClientId" resultMap="FieldMappingResultMap">
+        SELECT MAPPING_ID, CLIENT_ID, SOURCE_TABLE, SOURCE_COLUMN, TARGET_FIELD_PATH,
+               DATA_TYPE, TRANSFORMATION_RULE, FIELD_NOTES, IS_MANDATORY, DEFAULT_VALUE,
+               FIELD_ORDER, IS_ACTIVE, CREATED_AT, CREATED_BY, UPDATED_AT, UPDATED_BY
+        FROM FIELD_MAPPING
+        WHERE CLIENT_ID = #{clientId} AND IS_ACTIVE = 1
+        ORDER BY FIELD_ORDER, SOURCE_TABLE, SOURCE_COLUMN
+    </select>
+
+    <select id="findByClientIdAndSourceTable" resultMap="FieldMappingResultMap">
+        SELECT MAPPING_ID, CLIENT_ID, SOURCE_TABLE, SOURCE_COLUMN, TARGET_FIELD_PATH,
+               DATA_TYPE, TRANSFORMATION_RULE, FIELD_NOTES, IS_MANDATORY, DEFAULT_VALUE,
+               FIELD_ORDER, IS_ACTIVE, CREATED_AT, CREATED_BY, UPDATED_AT, UPDATED_BY
+        FROM FIELD_MAPPING
+        WHERE CLIENT_ID = #{clientId}
+          AND SOURCE_TABLE = #{sourceTable}
+          AND IS_ACTIVE = 1
+        ORDER BY FIELD_ORDER, SOURCE_COLUMN
+    </select>
+
+    <select id="findByMappingId" resultMap="FieldMappingResultMap">
+        SELECT MAPPING_ID, CLIENT_ID, SOURCE_TABLE, SOURCE_COLUMN, TARGET_FIELD_PATH,
+               DATA_TYPE, TRANSFORMATION_RULE, FIELD_NOTES, IS_MANDATORY, DEFAULT_VALUE,
+               FIELD_ORDER, IS_ACTIVE, CREATED_AT, CREATED_BY, UPDATED_AT, UPDATED_BY
+        FROM FIELD_MAPPING
+        WHERE MAPPING_ID = #{mappingId}
+    </select>
+
+    <select id="findDistinctSourceTables" resultType="string">
+        SELECT DISTINCT SOURCE_TABLE
+        FROM FIELD_MAPPING
+        WHERE CLIENT_ID = #{clientId} AND IS_ACTIVE = 1
+        ORDER BY SOURCE_TABLE
+    </select>
+
+    <select id="findMandatoryFields" resultMap="FieldMappingResultMap">
+        SELECT MAPPING_ID, CLIENT_ID, SOURCE_TABLE, SOURCE_COLUMN, TARGET_FIELD_PATH,
+               DATA_TYPE, TRANSFORMATION_RULE, FIELD_NOTES, IS_MANDATORY, DEFAULT_VALUE,
+               FIELD_ORDER, IS_ACTIVE, CREATED_AT, CREATED_BY, UPDATED_AT, UPDATED_BY
+        FROM FIELD_MAPPING
+        WHERE CLIENT_ID = #{clientId}
+          AND IS_MANDATORY = 1
+          AND IS_ACTIVE = 1
+        ORDER BY FIELD_ORDER
+    </select>
+
+    <select id="countByClientId" resultType="int">
+        SELECT COUNT(*)
+        FROM FIELD_MAPPING
+        WHERE CLIENT_ID = #{clientId} AND IS_ACTIVE = 1
+    </select>
+
+    <!-- Insert Statements -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="mappingId" keyColumn="MAPPING_ID">
+        INSERT INTO FIELD_MAPPING (
+            CLIENT_ID, SOURCE_TABLE, SOURCE_COLUMN, TARGET_FIELD_PATH, DATA_TYPE,
+            TRANSFORMATION_RULE, FIELD_NOTES, IS_MANDATORY, DEFAULT_VALUE,
+            FIELD_ORDER, IS_ACTIVE, CREATED_AT, CREATED_BY
+        ) VALUES (
+            #{clientId}, #{sourceTable}, #{sourceColumn}, #{targetFieldPath}, #{dataType},
+            #{transformationRule}, #{fieldNotes}, #{isMandatory}, #{defaultValue},
+            #{fieldOrder}, #{isActive}, CURRENT_TIMESTAMP, #{createdBy}
+        )
+    </insert>
+
+    <!-- Update Statements -->
+    <update id="update">
+        UPDATE FIELD_MAPPING
+        SET SOURCE_TABLE = #{sourceTable},
+            SOURCE_COLUMN = #{sourceColumn},
+            TARGET_FIELD_PATH = #{targetFieldPath},
+            DATA_TYPE = #{dataType},
+            TRANSFORMATION_RULE = #{transformationRule},
+            FIELD_NOTES = #{fieldNotes},
+            IS_MANDATORY = #{isMandatory},
+            DEFAULT_VALUE = #{defaultValue},
+            FIELD_ORDER = #{fieldOrder},
+            IS_ACTIVE = #{isActive},
+            UPDATED_AT = CURRENT_TIMESTAMP,
+            UPDATED_BY = #{updatedBy}
+        WHERE MAPPING_ID = #{mappingId}
+    </update>
+
+    <update id="deactivateByClientId">
+        UPDATE FIELD_MAPPING
+        SET IS_ACTIVE = 0,
+            UPDATED_AT = CURRENT_TIMESTAMP,
+            UPDATED_BY = #{updatedBy}
+        WHERE CLIENT_ID = #{clientId}
+    </update>
+
+    <!-- Delete Statements -->
+    <delete id="delete">
+        DELETE FROM FIELD_MAPPING
+        WHERE MAPPING_ID = #{mappingId}
+    </delete>
+
+</mapper>
